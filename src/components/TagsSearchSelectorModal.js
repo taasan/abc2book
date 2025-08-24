@@ -86,7 +86,7 @@ function TagsSearchSelectorModal(props) {
               return <Button key={selectedTag} style={{marginRight:'0.2em'}} variant="info" onClick={function(e) {deselectTag(selectedTag)}} >{props.tunebook.icons.closecircle}&nbsp;{selectedTag}</Button>
             })}</div>
             
-          <input type='search' value={filter} onChange={filterChange}  onFocus={function() {props.setBlockKeyboardShortcuts(true)}} onBlur={function() {props.setBlockKeyboardShortcuts(false)}}  />
+          <input type='search' value={filter} onChange={filterChange}  onFocus={function() {if (props.setBlockKeyboardShortcuts) props.setBlockKeyboardShortcuts(true)}} onBlur={function() {if (props.setBlockKeyboardShortcuts) props.setBlockKeyboardShortcuts(false)}}  />
           {(Array.isArray(sortedOptions) && sortedOptions.length === 0) && <Button onClick={function() {selectTag(filter)} } >Set</Button>}
         </Modal.Body>
         <Modal.Footer  >

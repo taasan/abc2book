@@ -211,7 +211,8 @@ export default function MediaPlayerMedia({mediaController, tunebook, tune}) {
             </Modal.Header>
             <Modal.Body>
                 <Button variant="success"  onClick={function() {mediaController.setTapToPlay(false);}}  >Play</Button>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-                <Button variant="danger" onClick={function() {mediaController.stop(); mediaController.setPlayCancelled(true); mediaController.setTapToPlay(false)}} >Cancel</Button>
+                <Button variant="danger" onClick={function() {mediaController.stop(); mediaController.setPlayCancelled(true); mediaController.setTapToPlay(false)}} >Cancel</Button>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                <a href={src} target="_new" ><Button variant="primary"  >Open Link</Button></a>
             </Modal.Body>
       </Modal>
       </>

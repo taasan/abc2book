@@ -30,16 +30,16 @@ function TuneBookOptionsModal(props) {
                           //console.log('extract id from ', link.link)
                           var newId = YouTubeGetID(link.link)
                           if (newId && typeof link.link === 'string') {
-                            ids.push({id: newId, start: (link.startAt > 0 ? link.startAt : 0), end: (link.endAt > 0 ? link.endAt : 0), note:'Tune Book'})
+                            ids.push({id: newId, start: (link.startAt > 0 ? link.startAt : 0), end: (link.endAt > 0 ? link.endAt : 0), note:tune.name})
                           }
                       }  
                     })
                 }
             })
-            //console.log(ids)
+            console.log("export pl",props.currentTuneBook,props.token,ids)
         }
         insertOrUpdatePlaylist(props.currentTuneBook, ids.slice(0,4), ((props.token && props.token.access_token) ? props.token.access_token : null))
-        handleClose()
+        //handleClose()
      }
   }
   

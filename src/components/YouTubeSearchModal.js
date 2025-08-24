@@ -144,7 +144,7 @@ function YouTubeSearchModal(props) {
           
         </Modal.Header>
         <Modal.Body>
-          <input type='text' value={filter} onChange={filterChange}  onBlur={function() {props.setBlockKeyboardShortcuts(false)}} onFocus={function() {props.setBlockKeyboardShortcuts(true)}}   />
+          <input type='text' value={filter} onChange={filterChange}  onBlur={function() {if (props.setBlockKeyboardShortcuts) props.setBlockKeyboardShortcuts(false)}} onFocus={function() {if (props.setBlockKeyboardShortcuts) props.setBlockKeyboardShortcuts(true)}}   />
         </Modal.Body>
         <Modal.Footer>
           {(error && error.length > 0) && <b>{error}</b>} 

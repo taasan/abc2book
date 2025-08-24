@@ -222,6 +222,12 @@ export default function SelectedItemsModal(props) {
       props.tunebook.utils.download('selected.abc',props.tunebook.abcTools.tunesToAbc(sel)) 
       handleClose()
   }
+
+  function clickCSV() {
+      var sel = props.tunebook.fromSelection(props.selected)
+      props.tunebook.utils.download('selected.abc',props.tunebook.abcTools.tunesToAbc(sel)) 
+      handleClose()
+  }
   
   function clickLinks() {
       var sel = props.tunebook.fromSelection(props.selected)
@@ -274,6 +280,7 @@ sortedTagOptions.sort(function (a,b) {if (a > b) return 1; else return -1})
               <Link to="/print" ><Button style={{float:'right', marginLeft:'0.2em'}} variant="success"  >Print</Button></Link>
               <Button style={{float:'right', marginLeft:'0.2em'}} variant="success" onClick={clickLinks} >Links</Button>
               <Button style={{float:'right', marginLeft:'0.2em'}} variant="success" onClick={clickDownload} >Download</Button>
+              <Button style={{float:'right', marginLeft:'0.2em'}} variant="success" onClick={clickCSV} >CSV</Button>
               <Button style={{float:'right'}} variant="danger" onClick={clickDelete} >Delete</Button>
           </div>    
          

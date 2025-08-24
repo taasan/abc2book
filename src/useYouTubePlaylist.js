@@ -130,11 +130,11 @@ export default function useYouTubePlaylist() {
  
   function insertOrUpdatePlaylistItems(playlistId,  items, accessToken) {
       return new Promise(function(resolve,reject) {
-          //console.log('insertOrUpdatePlaylistItems' ,playlistId, items)
+          console.log('insertOrUpdatePlaylistItems' ,playlistId, items)
           //var useToken = accessToken ? accessToken : access_token
           if (Array.isArray(items)) {
               getPlaylistItems(playlistId, accessToken).then(function(currentItems) {
-                  //console.log('insertOrUpdatePlaylistItems got current' ,currentItems)
+                  console.log('insertOrUpdatePlaylistItems got current' ,currentItems)
                   var cleanups = {}
                   var lookups = {}
                   currentItems.forEach(function(item) { 
@@ -143,28 +143,28 @@ export default function useYouTubePlaylist() {
                           cleanups[item.id] = item.youtubeId
                       }
                   })
-                  //console.log('s',JSON.stringify(lookups),JSON.stringify(cleanups))
+                  console.log('s',JSON.stringify(lookups),JSON.stringify(cleanups))
                   var promises = []
                   var count = 0
                   items.forEach(function(item) {
                     if (item && lookups.hasOwnProperty(item)) {
                         // already exists
-                        //console.log('skip',item)
+                        console.log('skip',item)
                         var lookup = lookups[item]
                         if (lookup && lookup.id) {
                             cleanups[lookup.id] = null
                         }
                     } else {
-                        //console.log('create',item)
+                        console.log('create',item)
                         promises.push(insertPlaylistItem(count,playlistId, item, accessToken))
                         count ++
                     }
                   })
-                  //console.log('delete',JSON.stringify(Object.values(cleanups)))
+                  console.log('delete',JSON.stringify(Object.values(cleanups)))
                   //// clear out old playlist items not on new items list
                   Object.keys(cleanups).forEach(function(item) {
                       if (item && cleanups[item]) {
-                          //console.log('delete',item, cleanups[item])
+                          console.log('delete',item, cleanups[item])
                           promises.push(deletePlaylistItem(item, accessToken))
                       }
                   })
