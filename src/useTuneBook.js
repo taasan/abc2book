@@ -32,22 +32,22 @@ var useTuneBook = ({importResults, setImportResults, tunes, setTunes,  currentTu
         //console.log("NEXT", mediaPlaylist, abcPlaylist, currentSongId,  navigate)
         if (abcPlaylist && abcPlaylist.tunes && abcPlaylist.tunes.length > 0) { 
             //console.log("NEXT abc")
-            var newPL = abcPlaylist
-            var currentTune = newPL.currentTune > 0 ? newPL.currentTune : 0
-            newPL.currentTune = currentTune + 1 % abcPlaylist.tunes.length
-            setAbcPlaylist(newPL)
-            if (abcPlaylist.tunes && abcPlaylist.tunes[newPL.currentTune] && abcPlaylist.tunes[newPL.currentTune].id) {
-                navigate("/tunes/"+abcPlaylist.tunes[newPL.currentTune].id+"/playMidi") 
-            }
+      var newPL = Object.assign({}, abcPlaylist)
+      var currentTune = (typeof newPL.currentTune === 'number' && newPL.currentTune >= 0) ? newPL.currentTune : 0
+      newPL.currentTune = (currentTune + 1) % abcPlaylist.tunes.length
+      setAbcPlaylist(newPL)
+      if (newPL.tunes && newPL.tunes[newPL.currentTune] && newPL.tunes[newPL.currentTune].id) {
+        navigate("/tunes/"+newPL.tunes[newPL.currentTune].id+"/playMidi") 
+      }
         } else if (mediaPlaylist && mediaPlaylist.tunes && mediaPlaylist.tunes.length > 0) { 
             //console.log("NEXT media")
-            var newPL = mediaPlaylist
-            var currentTune = newPL.currentTune > 0 ? newPL.currentTune : 0
-            newPL.currentTune = currentTune + 1 % mediaPlaylist.tunes.length
-            setMediaPlaylist(newPL)
-            if (mediaPlaylist.tunes && mediaPlaylist.tunes[newPL.currentTune] && mediaPlaylist.tunes[newPL.currentTune].id) {
-                navigate("/tunes/"+mediaPlaylist.tunes[newPL.currentTune].id+"/playMedia") 
-            }
+      var newPL = Object.assign({}, mediaPlaylist)
+      var currentTune = (typeof newPL.currentTune === 'number' && newPL.currentTune >= 0) ? newPL.currentTune : 0
+      newPL.currentTune = (currentTune + 1) % mediaPlaylist.tunes.length
+      setMediaPlaylist(newPL)
+      if (newPL.tunes && newPL.tunes[newPL.currentTune] && newPL.tunes[newPL.currentTune].id) {
+        navigate("/tunes/"+newPL.tunes[newPL.currentTune].id+"/playMedia") 
+      }
         } else {
             
             if (currentSongId) {
@@ -56,37 +56,41 @@ var useTuneBook = ({importResults, setImportResults, tunes, setTunes,  currentTu
                 return (a.name && b.name && a.name.toLowerCase().trim() < b.name.toLowerCase().trim()) ? -1 : 1
               })
               //groupBy='key'
-              if (groupBy) {
-                   //console.log("NEXT aa group sort ", groupBy)
-                   useTunes = useTunes.sort(function(a,b) { 
-                      var aa = a && a[groupBy] && a[groupBy].length > 0 ? (Array.isArray(a[groupBy]) ? a[groupBy].join(',') : a[groupBy]) : ''
-                      var bb = b && b[groupBy] && b[groupBy].length > 0 ? (Array.isArray(b[groupBy]) ? b[groupBy].join(',') : b[groupBy]) : ''
-                      if (aa < bb) {
-                        return -1
-                      } else if (aa > bb) {
-                        return 1  
-                      } else { 
-                        return 0
-                      } 
-                      
-                  })
-                  //console.log("NEXT aa ", JSON.parse(JSON.stringify(useTunes.map(function(t) {return {name: t.name, key: t.key }} ))))
-              }
-              
-              // find tune index allowing tunebook filter
-              var i = 0
-              var found = null
-              while (i < Object.keys(useTunes).length) {
-                 var theTune = useTunes[Object.keys(useTunes)[i]]
-                  if (theTune && (theTune.id === currentSongId)) {
-                    var next = i + 1 % Object.keys(useTunes).length
-                    if (useTunes[Object.keys(useTunes)[next]] && useTunes[Object.keys(useTunes)[next]].id) {
-                      found = useTunes[Object.keys(useTunes)[next]].id
-                      break;
-                    }
-                  }
-                  i++
-              }
+        // Build ordered list of tune ids. When grouped, preserve grouping order
+        // consistent with IndexLayout by using groupTunes which returns indices
+        // into the sorted useTunes array.
+        var orderedIds = []
+        // sort by name first to match IndexLayout
+        useTunes.sort(function(a,b) { 
+        return (a.name && b.name && a.name.toLowerCase().trim() < b.name.toLowerCase().trim()) ? -1 : 1
+        })
+        if (groupBy) {
+          var grouped = groupTunes(useTunes, groupBy)
+          Object.keys(grouped).sort(function(a,b) {
+            if (!a || (a.trim && a.trim() === '')) return -1
+            if (parseInt(a) > 0 && parseInt(b) > 0) {
+                return parseInt(a) > parseInt(b) ? 1 : -1
+            } else {
+                return a > b ? 1 : -1
+            }
+          }).forEach(function(groupKey) {
+            grouped[groupKey].forEach(function(itemIndex) {
+              if (useTunes[itemIndex] && useTunes[itemIndex].id) orderedIds.push(useTunes[itemIndex].id)
+            })
+          })
+        } else {
+          orderedIds = useTunes.map(function(t) { return t && t.id ? t.id : null }).filter(Boolean)
+        }
+
+        // find the current index and pick the next one (with wrap)
+        var found = null
+        if (orderedIds.length > 0) {
+          var idx = orderedIds.indexOf(currentSongId)
+          if (idx !== -1) {
+            var nextIdx = (idx + 1) % orderedIds.length
+            found = orderedIds[nextIdx]
+          }
+        }
               //console.log("NEXT found ",found)
               if (found) {
                 setCurrentTune(found)
@@ -119,22 +123,22 @@ var useTuneBook = ({importResults, setImportResults, tunes, setTunes,  currentTu
     
         if (abcPlaylist && abcPlaylist.tunes && abcPlaylist.tunes.length > 0) { 
             //console.log("NEXT")
-            var newPL = abcPlaylist
-            var currentTune = newPL.currentTune > 0 ? newPL.currentTune : 0
-            newPL.currentTune = currentTune - 1 % abcPlaylist.tunes.length
-            setAbcPlaylist(newPL)
-            if (abcPlaylist.tunes && abcPlaylist.tunes[newPL.currentTune] && abcPlaylist.tunes[newPL.currentTune].id) {
-                navigate("/tunes/"+abcPlaylist.tunes[newPL.currentTune].id+"/playMidi") 
-            }
+      var newPL = Object.assign({}, abcPlaylist)
+      var currentTune = (typeof newPL.currentTune === 'number' && newPL.currentTune >= 0) ? newPL.currentTune : 0
+      newPL.currentTune = (currentTune - 1 + abcPlaylist.tunes.length) % abcPlaylist.tunes.length
+      setAbcPlaylist(newPL)
+      if (newPL.tunes && newPL.tunes[newPL.currentTune] && newPL.tunes[newPL.currentTune].id) {
+        navigate("/tunes/"+newPL.tunes[newPL.currentTune].id+"/playMidi") 
+      }
         } else if (mediaPlaylist && mediaPlaylist.tunes && mediaPlaylist.tunes.length > 0) { 
             //console.log("NEXT")
-            var newPL = mediaPlaylist
-            var currentTune = newPL.currentTune > 0 ? newPL.currentTune : 0
-            newPL.currentTune = currentTune - 1 % mediaPlaylist.tunes.length
-            setMediaPlaylist(newPL)
-            if (mediaPlaylist.tunes && mediaPlaylist.tunes[newPL.currentTune] && mediaPlaylist.tunes[newPL.currentTune].id) {
-                navigate("/tunes/"+mediaPlaylist.tunes[newPL.currentTune].id+"/playMedia") 
-            }
+      var newPL = Object.assign({}, mediaPlaylist)
+      var currentTune = (typeof newPL.currentTune === 'number' && newPL.currentTune >= 0) ? newPL.currentTune : 0
+      newPL.currentTune = (currentTune - 1 + mediaPlaylist.tunes.length) % mediaPlaylist.tunes.length
+      setMediaPlaylist(newPL)
+      if (newPL.tunes && newPL.tunes[newPL.currentTune] && newPL.tunes[newPL.currentTune].id) {
+        navigate("/tunes/"+newPL.tunes[newPL.currentTune].id+"/playMedia") 
+      }
         } else {
             //console.log("PREV aa")
             if (currentSongId) {
@@ -144,34 +148,41 @@ var useTuneBook = ({importResults, setImportResults, tunes, setTunes,  currentTu
               useTunes.sort(function(a,b) { 
                 return (a.name && b.name && a.name.toLowerCase().trim() < b.name.toLowerCase().trim()) ? -1 : 1
               })
-              if (groupBy) {
-                  useTunes = useTunes.sort(function(a,b) { 
-                      var aa = a && a[groupBy] && a[groupBy].length > 0 ? (Array.isArray(a[groupBy]) ? a[groupBy].join(',') : a[groupBy]) : ''
-                      var bb = b && b[groupBy] && b[groupBy].length > 0 ? (Array.isArray(b[groupBy]) ? b[groupBy].join(',') : b[groupBy]) : ''
-                      if (aa < bb) {
-                        return -1
-                      } else if (aa > bb) {
-                        return 1  
-                      } else { 
-                        return 0
-                      } 
-                      
-                  })
-              }
-              // find tune index allowing tunebook filter
-              var i = 0
-              var found = null
-              while (i < Object.keys(useTunes).length) {
-                 var theTune = useTunes[Object.keys(useTunes)[i]]
-                  if (theTune && (theTune.id === currentSongId)) {
-                    var next = i - 1 % Object.keys(useTunes).length
-                    if (useTunes[Object.keys(useTunes)[next]] && useTunes[Object.keys(useTunes)[next]].id) {
-                      found = useTunes[Object.keys(useTunes)[next]].id
-                      break;
-                    }
-                  }
-                  i++
-              }
+        // Build ordered list of tune ids. When grouped, preserve grouping order
+        // consistent with IndexLayout by using groupTunes which returns indices
+        // into the sorted useTunes array.
+        var orderedIds = []
+        // sort by name first to match IndexLayout
+        useTunes.sort(function(a,b) { 
+        return (a.name && b.name && a.name.toLowerCase().trim() < b.name.toLowerCase().trim()) ? -1 : 1
+        })
+        if (groupBy) {
+          var grouped = groupTunes(useTunes, groupBy)
+          Object.keys(grouped).sort(function(a,b) {
+            if (!a || (a.trim && a.trim() === '')) return -1
+            if (parseInt(a) > 0 && parseInt(b) > 0) {
+                return parseInt(a) > parseInt(b) ? 1 : -1
+            } else {
+                return a > b ? 1 : -1
+            }
+          }).forEach(function(groupKey) {
+            grouped[groupKey].forEach(function(itemIndex) {
+              if (useTunes[itemIndex] && useTunes[itemIndex].id) orderedIds.push(useTunes[itemIndex].id)
+            })
+          })
+        } else {
+          orderedIds = useTunes.map(function(t) { return t && t.id ? t.id : null }).filter(Boolean)
+        }
+
+        // find the current index and pick the previous one (with wrap)
+        var found = null
+        if (orderedIds.length > 0) {
+          var idx = orderedIds.indexOf(currentSongId)
+          if (idx !== -1) {
+            var prevIdx = (idx - 1 + orderedIds.length) % orderedIds.length
+            found = orderedIds[prevIdx]
+          }
+        }
               //console.log("PREV found ",found)
               if (found) {
                 // save last seen tune since not click trigger

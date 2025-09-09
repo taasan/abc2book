@@ -283,28 +283,35 @@ export default function useTuneBookMediaController(props) {
                 setIsLoading(false)
                 console.log(e)
             }
-        } else if (srcType === 'youtube' && ytPlayerRef && ytPlayerRef.current && ytPlayerRef.current.playVideo) {
-            //console.log('start yt',ytPlayerRef.current)
-            
-            try {
-                //console.log('start yt try')
-                var res = ytPlayerRef.current.playVideo()
-                console.log('start yt called play')
-                setTimeout(function() {
-                    console.log('start yt TO')
-                    console.log(res, ytPlayerRef.current.getPlayerState())
-                    if (ytPlayerRef.current.getPlayerState() === -1) {
-                        console.log('start yt set tap to play')
-                        setTapToPlay(true)
-                    }
-                },4000)
-            } catch (e) {
-                console.log("YT play err",e)
-                //setIsPlaying(false)
-                //setIsLoading(false)
-                //console.log(e,ytPlayerRef.current)
+        } else if (srcType === 'youtube') {
+            // Be defensive: ytPlayerRef.current may not be initialized yet. If so,
+            // fall back to requiring a user tap (tapToPlay) instead of throwing.
+            if (ytPlayerRef && ytPlayerRef.current && typeof ytPlayerRef.current.playVideo === 'function') {
+                try {
+                    var res = ytPlayerRef.current.playVideo()
+                    console.log('start yt called play')
+                    setTimeout(function() {
+                        try {
+                            var state = typeof ytPlayerRef.current.getPlayerState === 'function' ? ytPlayerRef.current.getPlayerState() : null
+                            console.log('start yt TO')
+                            console.log(res, state)
+                            if (state === -1) {
+                                console.log('start yt set tap to play')
+                                setTapToPlay(true)
+                            }
+                        } catch (e) {
+                            console.log('YT state read err', e)
+                        }
+                    },4000)
+                } catch (e) {
+                    console.log("YT play err",e)
+                }
+            } else {
+                console.log('YT player not ready, enabling tap-to-play')
+                setTapToPlay(true)
+                setIsLoading(false)
             }
-        } 
+        }
     }
     
     function pause() {

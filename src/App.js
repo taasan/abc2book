@@ -136,7 +136,7 @@ function App(props) {
       setSheetUpdateResults(null)
     }
     
-    filesDocumentManager.syncAttachedFiles(tunes, (token ? token.access_token : null)).then(function(res) {setTunes(res)})     
+   // filesDocumentManager.syncAttachedFiles(tunes, (token ? token.access_token : null)).then(function(res) {setTunes(res)})     
   }
   
    /** 
