@@ -3,6 +3,7 @@ import {Link  } from 'react-router-dom'
 import {Button, Dropdown, Badge} from 'react-bootstrap'
 import {ListGroup} from 'react-bootstrap'
 import {useState, useEffect} from 'react'
+import {isMobile} from 'react-device-detect'
 import IndexSearchForm from './IndexSearchForm'
 import BoostSettingsModal from './BoostSettingsModal'
 import SelectedItemsModal from './SelectedItemsModal'
@@ -426,10 +427,10 @@ export default function IndexLayout(props) {
                 </>}
                 
                       {(tune.books && tune.books.length > 0) && <span style={{ marginRight:'1em', float:'right'}} >
-                        {tune.books.map(function(book,count) {if (props.currentTuneBook && props.currentTuneBook === book) {return null} else { return <Button onClick={function() { props.setCurrentTuneBook(book); props.setFilter(''); props.forceRefresh()}} key={book} variant="primary" style={{color:'white', marginRight:'0.1em', fontSize:'0.5em'}} >{book}</Button>}})}
+                            {tune.books.map(function(book,count) {if (props.currentTuneBook && props.currentTuneBook === book) {return null} else { return <Button disabled={isMobile} onClick={function() { if (!isMobile) { props.setCurrentTuneBook(book); props.setFilter(''); props.forceRefresh()} }} key={book} variant="primary" style={{color:'white', marginRight:'0.1em', fontSize:'0.5em'}} >{book}</Button>}})}
                     </span>}
                     {(Array.isArray(tune.tags) && tune.tags.length > 0) && <span style={{ marginRight:'1em', float:'right'}} >
-                        {tune.tags.map(function(tag,count) { return props.tagFilter.indexOf(tag) === -1 ? <Button  key={tag} variant="info" onClick={function() { props.setTagFilter([tag]); props.setFilter(''); props.forceRefresh()}} style={{marginRight:'0.1em', fontSize:'0.5em'}} >{tag}</Button> : ''})}
+                        {tune.tags.map(function(tag,count) { return props.tagFilter.indexOf(tag) === -1 ? <Button disabled={isMobile} key={tag} variant="info" onClick={function() { if (!isMobile) { props.setTagFilter([tag]); props.setFilter(''); props.forceRefresh()} }} style={{marginRight:'0.1em', fontSize:'0.5em'}} >{tag}</Button> : ''})}
                     </span>}
                 {(Object.keys(filtered).length > 0 && Object.keys(filtered).length < LIST_PROTECTION_LIMIT) && <>    
                     {tune.key && <Button style={{ marginRight:'1em', float:'right'}} variant={'outline-success'}   >{tune.key}</Button>}
