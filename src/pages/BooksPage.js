@@ -68,7 +68,7 @@ export default function BooksPage(props) {
                 
                 <div style={{clear:'both'}} >&nbsp;</div>
                 <div>
-                    <YourFilters tunebook={props.tunebook} setFilter={props.setFilter} setGroupBy={props.setGroupBy} setTagFilter={props.setTagFilter} setCurrentTuneBook={props.setCurrentTuneBook} />
+                    <YourFilters tunebook={props.tunebook} setFilter={props.setFilter} setGroupBy={props.setGroupBy} setTagFilter={props.setTagFilter} setCurrentTuneBook={props.setCurrentTuneBook} forceRefresh={props.forceRefresh} />
                 </div>
                 <Tabs  activeKey={tabKey}
       onSelect={(k) => setTabKey(k)} >

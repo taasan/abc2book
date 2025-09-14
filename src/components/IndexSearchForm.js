@@ -109,22 +109,22 @@ export default function IndexSearchForm(props) {
         </div>
 
             <Modal show={showSaveModal} onHide={closeSaveModal}>
+                <Form onSubmit={function(e) { e.preventDefault(); saveCurrentFilter(); }}>
                 <Modal.Header closeButton>
                     <Modal.Title>Save filter</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
-                    <Form>
                         <Form.Group>
                             <Form.Label>Name</Form.Label>
-                            <Form.Control type="text" value={saveName} onChange={function(e) { setSaveName(e.target.value); if (overwriteWarning) setOverwriteWarning(false) }} />
+                            <Form.Control autoFocus type="text" value={saveName} onChange={function(e) { setSaveName(e.target.value); if (overwriteWarning) setOverwriteWarning(false) }} />
                             {overwriteWarning && <div style={{color:'red', marginTop:'0.5em'}}>A filter with that name already exists. Click Save again to overwrite.</div>}
                         </Form.Group>
-                    </Form>
                 </Modal.Body>
                 <Modal.Footer>
                     <Button variant="secondary" onClick={closeSaveModal}>Cancel</Button>
-                    <Button variant="primary" onClick={saveCurrentFilter}>Save</Button>
+                    <Button type="submit" variant="primary">Save</Button>
                 </Modal.Footer>
+                </Form>
             </Modal>
         </>
         

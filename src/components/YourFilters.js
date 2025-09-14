@@ -44,13 +44,25 @@ export default function YourFilters(props) {
             if (props.setGroupBy) props.setGroupBy(item.groupBy || '')
             if (props.setTagFilter) props.setTagFilter(item.tagFilter || [])
             if (props.setCurrentTuneBook) props.setCurrentTuneBook(item.currentTuneBook || '')
-            // navigate via tunebook if possible
-            if (props.tunebook && typeof props.tunebook.navigate === 'function') {
-                props.tunebook.navigate('/tunes')
+            if (typeof props.forceRefresh === 'function') {
+                // ensure list updates (grouping, filtering) after applying saved criteria
+                setTimeout(function() { 
+                    props.forceRefresh(); 
+                    // navigate after refresh so groupBy takes effect on the tunes page
+                    if (props.tunebook && typeof props.tunebook.navigate === 'function') {
+                        props.tunebook.navigate('/tunes')
+                    } else {
+                        window.location.hash = '#/tunes'
+                    }
+                }, 50)
             } else {
-                window.location.hash = '#/tunes'
+                // navigate immediately if no refresh function is available
+                if (props.tunebook && typeof props.tunebook.navigate === 'function') {
+                    props.tunebook.navigate('/tunes')
+                } else {
+                    window.location.hash = '#/tunes'
+                }
             }
-            toast.success('Loaded filter "' + name + '"')
         } catch (e) {
             console.log('load and nav error', e)
         }
