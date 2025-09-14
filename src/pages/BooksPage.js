@@ -53,7 +53,7 @@ export default function BooksPage(props) {
         
         <div style={{clear:'both', width:'100%'}}>
             {tbOptions.length > 0 && <div>
-                <div style={{position:'fixed', top: '4.0em', zIndex:9999, width:'100%', backgroundColor:'white'}}>
+                <div style={{position:'fixed', top: '4.0em', width:'100%', backgroundColor:'white'}}>
 					<div style={{float:'left', border: '1px solid black', borderRadius:'10px', backgroundColor:'lightgrey', paddingRight:'1em'}} >
 						<Link to={'/tunes'} ><Button style={{marginLeft:'0.3em'}} variant="outline-info" >{props.tunebook.icons.music} <Badge>{props.tunes ? Object.keys(props.tunes).length : 0}</Badge></Button></Link>
 						<Link to={'/books'} onClick={function() {setTabKey('books')}} ><Button style={{marginLeft:'0.3em'}} variant="outline-info" >{props.tunebook.icons.book} <Badge>{tbOptions.length}</Badge></Button></Link>
