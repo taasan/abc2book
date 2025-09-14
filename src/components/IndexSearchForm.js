@@ -1,7 +1,8 @@
 import {Link  } from 'react-router-dom'
-import {Button} from 'react-bootstrap'
+import {Button, Modal, Form} from 'react-bootstrap'
 import {ListGroup} from 'react-bootstrap'
 import {useState, useEffect} from 'react'
+import { toast } from 'react-toastify'
 import BookSelectorModal from './BookSelectorModal'
 import GroupBySelectorModal from './GroupBySelectorModal'
 import TagsSearchSelectorModal from './TagsSearchSelectorModal'
@@ -35,42 +36,97 @@ export default function IndexSearchForm(props) {
 // props.updateList(e.target.value)
     
     //5400ff52 #5400ffb3  #5400ff82
-    return <div id="tunesearchform" style={{padding:'0.3em', minHeight:'4em', clear:'both', backgroundColor: '#5400ff2e', borderRadius:'10px', border:'1px solid black'}} >
-      <span style={{zIndex:0, float:'right', backgroundColor:'#5400ff2e', padding:'0.2em', clear:'both'}} id="tunebookbuttons" >
-           
+    const [showSaveModal, setShowSaveModal] = useState(false)
+    const [saveName, setSaveName] = useState('')
+    const [overwriteWarning, setOverwriteWarning] = useState(false)
+
+    function openSaveModal() {
+        setSaveName('')
+        setOverwriteWarning(false)
+        setShowSaveModal(true)
+    }
+
+    function closeSaveModal() {
+        setShowSaveModal(false)
+    }
+
+    function saveCurrentFilter() {
+        try {
+            var saved = window.localStorage.getItem('bookstorage_saved_filters')
+            var list = saved ? JSON.parse(saved) : {}
+            if (!saveName || saveName.trim() === '') return
+            if (list[saveName] && !overwriteWarning) {
+                // ask for confirmation
+                setOverwriteWarning(true)
+                return
+            }
+            // create payload of current criteria
+            var payload = { name: saveName, filter: props.filter || '', groupBy: props.groupBy || '', tagFilter: props.tagFilter || [], currentTuneBook: props.currentTuneBook || '' }
+            list[saveName] = payload
+            window.localStorage.setItem('bookstorage_saved_filters', JSON.stringify(list))
+            toast.success('Saved filter "' + saveName + '"')
+            setShowSaveModal(false)
+        } catch (e) {
+            console.log('save filter error', e)
+        }
+    }
+
+        return <>
+            <div id="tunesearchform" style={{padding:'0.3em', minHeight:'4em', clear:'both', backgroundColor: '#5400ff2e', borderRadius:'10px', border:'1px solid black'}} >
+                <span style={{zIndex:0, float:'right', backgroundColor:'#5400ff2e', padding:'0.2em', clear:'both'}} id="tunebookbuttons" >
+                     <Button onClick={openSaveModal} variant={"info"} size="small" style={{marginLeft:'0.5em'}} title="Save current filter" >{props.tunebook.icons.save}</Button>
+                  </span>
+            <span style={{fontWeight:'bold', fontSize:'1.3em'}} >Search&nbsp;&nbsp;</span>
+             
+             <input onBlur={function() {if (props.setBlockKeyboardShortcuts) props.setBlockKeyboardShortcuts(false)}} onFocus={function() {if (props.setBlockKeyboardShortcuts) props.setBlockKeyboardShortcuts(true)}} style={{width:'30%', backgroundColor: inputColor , marginRight: '0.2em', fontSize:'1.3em' }} type='search' value={props.filter ? props.filter : ''} onChange={function(e) {props.setFilter(e.target.value);  if (e.target.value.length > 1) {setInputColor('##5400ff2e') } else {setInputColor('##5400ff2e')} }} />
+             <Button onClick={function() {props.setFilter(''); props.setCurrentTuneBook(''); props.setGroupBy(''); props.setTagFilter([]); props.setSelected({}); props.setSelectedCount(0); props.setFiltered(''); props.setGrouped({}); props.setListHash('')}} variant={"danger"} size="small" style={{marginRight:'1em'}} >{props.tunebook.icons.closecircle }</Button>
+            
+             
+               <BookSelectorModal  tunes={props.tunes} blockKeyboardShortcuts={props.blockKeyboardShortcuts} forceRefresh={props.forceRefresh} title={'Select a Book'} currentTuneBook={props.currentTuneBook} setCurrentTuneBook={props.setCurrentTuneBook}  tunebook={props.tunebook} onChange={function(val) {props.setCurrentTuneBook(val); props.forceRefresh();}} defaultOptions={props.tunebook.getTuneBookOptions} searchOptions={props.tunebook.getSearchTuneBookOptions} triggerElement={<Button style={{marginLeft:'0.1em', color:'black'}} >{props.tunebook.icons.book} {(props.currentTuneBook ? <b>{props.currentTuneBook}</b> : '')} </Button>} />
+              
+              <span style={{ marginLeft:'0.1em'}} >
+              
+                    <TagsSearchSelectorModal tagCollation={props.tagCollation} setBlockKeyboardShortcuts={props.setBlockKeyboardShortcuts} forceRefresh={props.forceRefresh} tunebook={props.tunebook} defaultOptions={props.tunebook.getTuneTagOptions} searchOptions={props.tunebook.getSearchTuneTagOptions} value={props.tagFilter} onChange={function(val) { 
+                        props.setTagFilter(val)
+                        props.forceRefresh()
+                        //console.log('change search filter ',val)
+                              //var currentSelection = Object.keys(props.selected).filter(function(item) {
+                                //return (props.selected[item] ? true : false)
+                              //})
+                              //props.tunebook.bulkChangeTunes(currentSelection, 'tags', val)
+                              //navigate('/blank')
+                              //setTimeout(function() {
+                                  //navigate('/tunes')
+                              //},500)
+                         
+                        } }
+                   />
+                  </span>
+               
+             <>{(props.tunes && props.filtered && props.filtered.length < props.LIST_PROTECTION_LIMIT*5) && <GroupBySelectorModal LIST_PROTECTION_LIMIT={props.LIST_PROTECTION_LIMIT} onChange={function(val) { props.setGroupBy(val)}}  value={props.groupBy} tunebook={props.tunebook}  showPreviewInList={props.showPreviewInList} setShowPreviewInList={props.setShowPreviewInList} tunes={Object.keys(props.filtered)} />}</>
             
             
-        </span>
-        <span style={{fontWeight:'bold', fontSize:'1.3em'}} >Search&nbsp;&nbsp;</span>
-         
-         <input onBlur={function() {if (props.setBlockKeyboardShortcuts) props.setBlockKeyboardShortcuts(false)}} onFocus={function() {if (props.setBlockKeyboardShortcuts) props.setBlockKeyboardShortcuts(true)}} style={{width:'30%', backgroundColor: inputColor , marginRight: '0.2em', fontSize:'1.3em' }} type='search' value={props.filter ? props.filter : ''} onChange={function(e) {props.setFilter(e.target.value);  if (e.target.value.length > 1) {setInputColor('##5400ff2e') } else {setInputColor('##5400ff2e')} }} />
-         <Button onClick={function() {props.setFilter(''); props.setCurrentTuneBook(''); props.setGroupBy(''); props.setTagFilter([]); props.setSelected({}); props.setSelectedCount(0); props.setFiltered(''); props.setGrouped({}); props.setListHash('')}} variant={"danger"} size="small" style={{marginRight:'1em'}} >{props.tunebook.icons.closecircle }</Button>
-         
-           <BookSelectorModal  tunes={props.tunes} blockKeyboardShortcuts={props.blockKeyboardShortcuts} forceRefresh={props.forceRefresh} title={'Select a Book'} currentTuneBook={props.currentTuneBook} setCurrentTuneBook={props.setCurrentTuneBook}  tunebook={props.tunebook} onChange={function(val) {props.setCurrentTuneBook(val); props.forceRefresh();}} defaultOptions={props.tunebook.getTuneBookOptions} searchOptions={props.tunebook.getSearchTuneBookOptions} triggerElement={<Button style={{marginLeft:'0.1em', color:'black'}} >{props.tunebook.icons.book} {(props.currentTuneBook ? <b>{props.currentTuneBook}</b> : '')} </Button>} />
-          
-          <span style={{ marginLeft:'0.1em'}} >
-          
-                <TagsSearchSelectorModal tagCollation={props.tagCollation} setBlockKeyboardShortcuts={props.setBlockKeyboardShortcuts} forceRefresh={props.forceRefresh} tunebook={props.tunebook} defaultOptions={props.tunebook.getTuneTagOptions} searchOptions={props.tunebook.getSearchTuneTagOptions} value={props.tagFilter} onChange={function(val) { 
-                    props.setTagFilter(val)
-                    props.forceRefresh()
-                    //console.log('change search filter ',val)
-                          //var currentSelection = Object.keys(props.selected).filter(function(item) {
-                            //return (props.selected[item] ? true : false)
-                          //})
-                          //props.tunebook.bulkChangeTunes(currentSelection, 'tags', val)
-                          //navigate('/blank')
-                          //setTimeout(function() {
-                              //navigate('/tunes')
-                          //},500)
-                     
-                    } }
-               />
-              </span>
-           
-         <>{(props.tunes && props.filtered && props.filtered.length < props.LIST_PROTECTION_LIMIT*5) && <GroupBySelectorModal LIST_PROTECTION_LIMIT={props.LIST_PROTECTION_LIMIT} onChange={function(val) { props.setGroupBy(val)}}  value={props.groupBy} tunebook={props.tunebook}  showPreviewInList={props.showPreviewInList} setShowPreviewInList={props.setShowPreviewInList} tunes={Object.keys(props.filtered)} />}</>
-        
-         
-    </div>
+        </div>
+
+            <Modal show={showSaveModal} onHide={closeSaveModal}>
+                <Modal.Header closeButton>
+                    <Modal.Title>Save filter</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    <Form>
+                        <Form.Group>
+                            <Form.Label>Name</Form.Label>
+                            <Form.Control type="text" value={saveName} onChange={function(e) { setSaveName(e.target.value); if (overwriteWarning) setOverwriteWarning(false) }} />
+                            {overwriteWarning && <div style={{color:'red', marginTop:'0.5em'}}>A filter with that name already exists. Click Save again to overwrite.</div>}
+                        </Form.Group>
+                    </Form>
+                </Modal.Body>
+                <Modal.Footer>
+                    <Button variant="secondary" onClick={closeSaveModal}>Cancel</Button>
+                    <Button variant="primary" onClick={saveCurrentFilter}>Save</Button>
+                </Modal.Footer>
+            </Modal>
+        </>
         
 }
 

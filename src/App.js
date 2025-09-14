@@ -20,6 +20,7 @@ import PrivacyPage from './pages/PrivacyPage'
 import ImportPage from './pages/ImportPage'
 import HelpPage from './pages/HelpPage'
 import RecordingsPage from './pages/RecordingsPage'
+import FiltersPage from './pages/FiltersPage'
 import ImportLinkPage from './pages/ImportLinkPage'
 import ImportGoogleDocumentPage from './pages/ImportGoogleDocumentPage'
 import ImportGoogleAudioPage from './pages/ImportGoogleAudioPage'
@@ -430,6 +431,7 @@ function App(props) {
                      <Route  path={`books`}   element={<BooksPage mediaController={mediaController} tunes={tunes} tunebook={tunebook}   forceRefresh={forceRefresh} tunesHash={tunesHash}  currentTuneBook={currentTuneBook} setCurrentTuneBook={setCurrentTuneBook}  mediaPlaylist={mediaPlaylist} setMediaPlaylist={setMediaPlaylist}  scrollOffset={scrollOffset} setScrollOffset={setScrollOffset} token={token}  user={user} setTagFilter={setTagFilter} setFilter={setFilter} searchIndex={searchIndex} loadTuneTexts={loadTuneTexts} googleDocumentId={googleDocumentId} />} />
                      
                      <Route  path={`tags`}   element={<BooksPage defaultTab={'tags'} mediaController={mediaController} tunes={tunes} tunebook={tunebook}   forceRefresh={forceRefresh} tunesHash={tunesHash}  currentTuneBook={currentTuneBook} setCurrentTuneBook={setCurrentTuneBook}  mediaPlaylist={mediaPlaylist} setMediaPlaylist={setMediaPlaylist}  scrollOffset={scrollOffset} setScrollOffset={setScrollOffset} token={token}  user={user} setTagFilter={setTagFilter} setFilter={setFilter} searchIndex={searchIndex} loadTuneTexts={loadTuneTexts} googleDocumentId={googleDocumentId} />} />
+                    <Route  path={`filters`}   element={<FiltersPage tunebook={tunebook} setFilter={setFilter} setGroupBy={setGroupBy} setTagFilter={setTagFilter} setCurrentTuneBook={setCurrentTuneBook} />} />
                     
                     <Route  path={`help`}   element={<HelpPage  tunebook={tunebook}    />}  />
                     <Route  path={`settings`}  element={<SettingsPage user={user}    tunebook={tunebook} token={token}  googleDocumentId={googleDocumentId} />}  />

@@ -12,6 +12,7 @@ import TuneBookOptionsModal from '../components/TuneBookOptionsModal'
 //import Accordion from 'react-bootstrap/Accordion';
 import {useNavigate} from 'react-router-dom'
 import VennDiagram from '../components/VennDiagram'
+import YourFilters from '../components/YourFilters'
 
 export default function BooksPage(props) {
     const navigate = useNavigate()
@@ -41,7 +42,7 @@ export default function BooksPage(props) {
         v[key] = true
         setMyBookImageIsHidden(v)
     }
-   const [tabKey, setTabKey] = useState(props.defaultTab === "tags" ? "tags" : "books");
+        const [tabKey, setTabKey] = useState(props.defaultTab === "tags" ? "tags" : "books");
 
     
     var tbOptions = Object.keys(props.tunebook.getTuneBookOptions()).filter(function(a) {return (a && a.length > 0)})
@@ -66,6 +67,9 @@ export default function BooksPage(props) {
                 </div>
                 
                 <div style={{clear:'both'}} >&nbsp;</div>
+                <div>
+                    <YourFilters tunebook={props.tunebook} setFilter={props.setFilter} setGroupBy={props.setGroupBy} setTagFilter={props.setTagFilter} setCurrentTuneBook={props.setCurrentTuneBook} />
+                </div>
                 <Tabs  activeKey={tabKey}
       onSelect={(k) => setTabKey(k)} >
                     <Tab  eventKey="books" title="Your Books">
@@ -85,7 +89,6 @@ export default function BooksPage(props) {
                             }
                         })}</div>
                     </Tab>
-                    
                     <Tab eventKey="tags" title="Your Tags">
                         <input style={{float:'left'}} type='search'  value={searchTagFilter} onChange={function(e) {setSearchTagFilter(e.target.value)}} />
                         <div style={{clear:'both'}} ></div>
