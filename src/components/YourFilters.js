@@ -85,7 +85,7 @@ export default function YourFilters(props) {
             </Modal.Body>
             <Modal.Footer>
                 <Button variant="secondary" onClick={function() { setShowDeleteModal(false); setDeleteName(null); }}>Cancel</Button>
-                <Button variant="secondary" onClick={function() { performDelete(deleteName); setShowDeleteModal(false); setDeleteName(null); }}>Delete</Button>
+                <Button variant="danger" onClick={function() { performDelete(deleteName); setShowDeleteModal(false); setDeleteName(null); }}>Delete</Button>
             </Modal.Footer>
         </Modal>
     </div>
