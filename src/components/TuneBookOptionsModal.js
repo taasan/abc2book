@@ -4,6 +4,7 @@ import {Link} from 'react-router-dom'
 import ShareTunebookModal from './ShareTunebookModal'
 import {useNavigate} from 'react-router-dom'
 import useYouTubePlaylist from '../useYouTubePlaylist'
+import { toast } from 'react-toastify'
 
 function TuneBookOptionsModal(props) {
   const [show, setShow] = useState(false);
@@ -36,9 +37,29 @@ function TuneBookOptionsModal(props) {
                     })
                 }
             })
-            console.log("export pl",props.currentTuneBook,props.token,ids)
-        }
-        insertOrUpdatePlaylist(props.currentTuneBook, ids.slice(0,4), ((props.token && props.token.access_token) ? props.token.access_token : null))
+                console.log("export pl",props.currentTuneBook,props.token,ids)
+            }
+            // debug: log the slice we pass, the token string, and handle the promise result
+            try {
+              const tokenStr = (props.token && props.token.access_token) ? props.token.access_token : null
+              if (!tokenStr) {
+                toast.error('Missing Google access token. Please log in.')
+                return
+              }
+              // close modal immediately when export starts
+              try { handleClose() } catch (er) {}
+              const payload = ids
+              const p = insertOrUpdatePlaylist(props.currentTuneBook, payload, tokenStr)
+              if (p && typeof p.then === 'function') {
+                p.then(function(res) {
+                  // result handled via toast in hook
+                }).catch(function(err) {
+                  console.error('insertOrUpdatePlaylist rejected', err)
+                })
+              }
+            } catch (ex) {
+              console.error('exportYouTubePlaylist error', ex)
+            }
         //handleClose()
      }
   }

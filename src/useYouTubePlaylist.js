@@ -1,15 +1,70 @@
 import axios from 'axios'
+import { toast } from 'react-toastify'
 //import {useRef, useEffect} from 'react'
 
 export default function useYouTubePlaylist() {
+  const MAX_EXPORT_ITEMS = 100
+  const DEFAULT_INSERT_DELAY_MS = 300
+  // export toast countdown state
+  var _exportToastId = null
+  var _exportCountdownTimer = null
+  var _exportStartTime = null
+  var _exportEstimatedMs = 0
+
+  function _startExportCountdown(itemCount) {
+    try {
+      var count = Number(itemCount) || 0
+      _exportEstimatedMs = Math.max(1000, count * DEFAULT_INSERT_DELAY_MS + 1000)
+      _exportStartTime = Date.now()
+      _exportToastId = toast.info('Export started — estimating ' + Math.ceil(_exportEstimatedMs/1000) + 's', {autoClose: false})
+      if (_exportCountdownTimer) clearInterval(_exportCountdownTimer)
+      _exportCountdownTimer = setInterval(function() {
+        try {
+          var elapsed = Date.now() - _exportStartTime
+          var remaining = Math.max(0, Math.ceil((_exportEstimatedMs - elapsed) / 1000))
+          if (_exportToastId != null) {
+            toast.update(_exportToastId, { render: 'Export in progress — approx ' + remaining + 's remaining', autoClose: false })
+          }
+        } catch (e) {}
+      }, 1000)
+    } catch (e) {}
+  }
+
+  function _stopExportCountdown(finalMsg, success) {
+    try {
+      if (_exportCountdownTimer) {
+        clearInterval(_exportCountdownTimer)
+        _exportCountdownTimer = null
+      }
+      if (_exportToastId != null) {
+        try { toast.dismiss(_exportToastId) } catch (e) {}
+        _exportToastId = null
+      }
+      // show final toast
+      if (success) toast.success(finalMsg || 'Export complete')
+      else toast.error(finalMsg || 'Export failed')
+    } catch (e) {}
+  }
   //console.log('use yt pl',token)
   //var accessToken = token ? token.access_token : null
+  function _extractAjaxError(e) {
+    try {
+      if (!e) return 'Unknown error'
+      if (e.response && e.response.data) {
+        if (e.response.data.error && e.response.data.error.message) return e.response.data.error.message
+        if (typeof e.response.data === 'string') return e.response.data
+      }
+      if (e.message) return e.message
+      return String(e)
+    } catch (ex) {
+      return 'Unknown error'
+    }
+  }
   
   function getMyPlaylists(accessToken) {
     return new Promise(function(resolve,reject) {
-      //console.log('get my playlists' ,accessToken)
       //var useToken = accessToken ? accessToken : access_token
-      if (accessToken) {
+  if (accessToken) {
         var url = 'https://youtube.googleapis.com/youtube/v3/playlists?part=snippet%2CcontentDetails&maxResults=50&mine=true&key='+process.env.REACT_APP_GOOGLE_API_KEY
         axios({
           method: 'get',
@@ -26,15 +81,19 @@ export default function useYouTubePlaylist() {
                 }
               })
               resolve(final)
-          } else {
-              resolve([])
-          }
+      } else {
+        resolve([])
+      }
         }).catch(function(e) {
-          resolve()
+          console.error('getMyPlaylists axios error', e)
+          if (e && e.response) console.error('getMyPlaylists response data', e.response.data)
+          if (e && e.stack) console.error('getMyPlaylists stack', e.stack)
+          reject(e)
         })
       } else {
         //if (!accessToken && localStorage.getItem('abc2book_lastuser')) refresh() 
-        resolve()
+        // clearly signal missing token
+        reject(new Error('Missing access token'))
       }
     })
   }
@@ -42,7 +101,7 @@ export default function useYouTubePlaylist() {
   function getPlaylistItemsRecursive(playlistId, accessToken, nextPageToken='') {
       //console.log('getPlaylistItemsRecursive',nextPageToken)
       return new Promise(function(resolve,reject) {
-            var url = 'https://youtube.googleapis.com/youtube/v3/playlistItems?part=snippet%2CcontentDetails&maxResults=300&playlistId='+playlistId + '&key=' + process.env.REACT_APP_GOOGLE_API_KEY
+        var url = 'https://youtube.googleapis.com/youtube/v3/playlistItems?part=snippet%2CcontentDetails&maxResults=50&playlistId='+playlistId + '&key=' + process.env.REACT_APP_GOOGLE_API_KEY
             if (nextPageToken) {
                 url = url+ '&pageToken='+nextPageToken
             }
@@ -60,17 +119,19 @@ export default function useYouTubePlaylist() {
                         final.push({id: item.id, title: item.snippet.title, youtubeId: item.snippet.resourceId.videoId})
                     }
                   })
-                  if (postRes.data.nextPageToken) {
-                      getPlaylistItemsRecursive(playlistId, accessToken, postRes.data.nextPageToken).then(function(extraResults) {
-                          if (Array.isArray(extraResults)) {
-                              extraResults.forEach(function(item) {
-                                    if (item && item.id) {
-                                        final.push(item)
-                                    }
-                              })
-                          }
-                          resolve(final)
-                      })
+          if (postRes.data.nextPageToken) {
+            getPlaylistItemsRecursive(playlistId, accessToken, postRes.data.nextPageToken).then(function(extraResults) {
+              if (Array.isArray(extraResults)) {
+                extraResults.forEach(function(item) {
+                  if (item && item.id) {
+                    final.push(item)
+                  }
+                })
+              }
+              resolve(final)
+            }).catch(function() {
+              resolve(final)
+            })
                   } else {
                     resolve(final)
                   }
@@ -91,7 +152,7 @@ export default function useYouTubePlaylist() {
       return new Promise(function(resolve,reject) {
       //console.log('create playlist')
       //var useToken = accessToken ? accessToken : access_token
-      if (accessToken) {
+  if (accessToken) {
         var url = 'https://youtube.googleapis.com/youtube/v3/playlists?part=snippet%2Cstatus&key=' + process.env.REACT_APP_GOOGLE_API_KEY
         axios({
           method: 'post',
@@ -111,16 +172,15 @@ export default function useYouTubePlaylist() {
               }
             }
 
-        }).then(function(postRes) {
-            //console.log(postRes)
-            if (postRes && postRes.data  && postRes.data.id) {
-                resolve(postRes.data.id)
-            } else {
-                reject()
-            }
-        }).catch(function(e) {
-          reject(null)
-        })
+    }).then(function(postRes) {
+      if (postRes && postRes.data  && postRes.data.id) {
+        resolve(postRes.data.id)
+      } else {
+        reject(new Error('No playlist id in response'))
+      }
+    }).catch(function(e) {
+      reject(e)
+    })
       } else {
         //if (!accessToken && localStorage.getItem('abc2book_lastuser')) refresh() 
         resolve(null)
@@ -128,104 +188,173 @@ export default function useYouTubePlaylist() {
     })
   }
  
-  function insertOrUpdatePlaylistItems(playlistId,  items, accessToken) {
-      return new Promise(function(resolve,reject) {
-          console.log('insertOrUpdatePlaylistItems' ,playlistId, items)
-          //var useToken = accessToken ? accessToken : access_token
-          if (Array.isArray(items)) {
-              getPlaylistItems(playlistId, accessToken).then(function(currentItems) {
-                  console.log('insertOrUpdatePlaylistItems got current' ,currentItems)
-                  var cleanups = {}
-                  var lookups = {}
-                  currentItems.forEach(function(item) { 
-                      if (item && item.id && item.youtubeId) {
-                          lookups[item.youtubeId] = item
-                          cleanups[item.id] = item.youtubeId
-                      }
-                  })
-                  console.log('s',JSON.stringify(lookups),JSON.stringify(cleanups))
-                  var promises = []
-                  var count = 0
-                  items.forEach(function(item) {
-                    if (item && lookups.hasOwnProperty(item)) {
-                        // already exists
-                        console.log('skip',item)
-                        var lookup = lookups[item]
-                        if (lookup && lookup.id) {
-                            cleanups[lookup.id] = null
-                        }
-                    } else {
-                        console.log('create',item)
-                        promises.push(insertPlaylistItem(count,playlistId, item, accessToken))
-                        count ++
-                    }
-                  })
-                  console.log('delete',JSON.stringify(Object.values(cleanups)))
-                  //// clear out old playlist items not on new items list
-                  Object.keys(cleanups).forEach(function(item) {
-                      if (item && cleanups[item]) {
-                          console.log('delete',item, cleanups[item])
-                          promises.push(deletePlaylistItem(item, accessToken))
-                      }
-                  })
-                  Promise.all(promises).then(function() {
-                       console.log('insertOrUpdatePlaylistItems done')
-                    resolve()  
-                  })
-                  //resolve()
-              }).catch(function() {
-                resolve()  
-              })
-          } else {
-              resolve()
+  // Insert a single playlist item (returns created playlistItem id or null if non-fatal conflict)
+  function insertPlaylistItem(position, playlistId, item, accessToken, note) {
+    var youtubeId = null
+    if (!item) {
+      youtubeId = null
+    } else if (typeof item === 'string') {
+      youtubeId = item
+    } else if (item.id) {
+      youtubeId = item.id
+    } else if (item.youtubeId) {
+      youtubeId = item.youtubeId
+    }
+    return new Promise(function(resolve, reject) {
+      if (!(accessToken && youtubeId)) return resolve(null)
+      // basic YouTube video id validation (most ids are 11 chars of A-Za-z0-9_-)
+      try {
+        var idOk = typeof youtubeId === 'string' && /^[A-Za-z0-9_-]{6,}$/.test(youtubeId)
+        if (!idOk) {
+          console.warn('insertPlaylistItem skipping invalid youtubeId', youtubeId, 'for playlist', playlistId)
+          return resolve({error: 'invalid youtube id: ' + String(youtubeId)})
+        }
+      } catch (vex) {}
+        var url = 'https://youtube.googleapis.com/youtube/v3/playlistItems?part=snippet&key=' + process.env.REACT_APP_GOOGLE_API_KEY
+        // Only include position when it's a valid non-negative integer. Omitting invalid position avoids
+        // the YouTube API "invalid argument" errors when NaN or unexpected types are sent.
+        // Do not send snippet.position. The YouTube API returns "Request contains an invalid argument"
+        // when position is out-of-range. We perform sequential inserts (one-by-one) and rely on appending
+        // to build correct order, so omit position entirely to avoid INVALID_ARGUMENT errors.
+        var snippet = {
+          playlistId: playlistId,
+          resourceId: {
+            kind: 'youtube#video',
+            videoId: youtubeId
           }
-      })
-      
+        }
+  var body = { snippet }
+
+      // attempt with retries for transient errors (429, 5xx)
+      var maxAttempts = 5
+      var attempt = 0
+      function tryPost() {
+        attempt++
+        axios({
+          method: 'post',
+          url: url,
+          headers: {'Authorization': 'Bearer '+accessToken, 'Accept': 'application/json', 'Content-Type': 'application/json'},
+          data: body
+        }).then(function(postRes) {
+          if (postRes && postRes.data && postRes.data.id) {
+            return resolve(postRes.data.id)
+          }
+          // unexpected shape
+          console.error('insertPlaylistItem unexpected response', postRes)
+          return reject(new Error('No id returned when inserting playlist item'))
+        }).catch(function(e) {
+          var status = e && e.response && e.response.status
+          var data = e && e.response && e.response.data
+          // log detailed error to help debugging 400 responses
+          try { console.error('insertPlaylistItem failed attempt', attempt, 'status', status, 'video', youtubeId, 'playlistId', playlistId) } catch (er) {}
+          try { console.error('insertPlaylistItem request body', body) } catch (er) {}
+          try { console.error('insertPlaylistItem response data', data || e && e.message) } catch (er) {}
+
+          if (status === 409) {
+            // non-fatal: already exists or aborted
+            console.warn('insertPlaylistItem non-fatal 409/ABORTED for video', youtubeId, 'playlistId', playlistId, data || e && e.message)
+            return resolve(null)
+          }
+
+          // retry on rate limit or server errors
+          if ((status === 429 || (status >= 500 && status < 600)) && attempt < maxAttempts) {
+            var backoff = Math.pow(2, attempt) * 250
+            setTimeout(tryPost, backoff)
+            return
+          }
+
+          // otherwise fail with a friendly message
+          var friendly = _extractAjaxError(e)
+          // Resolve with an error object instead of rejecting so callers that `then` the
+          // promise receive a structured result and we avoid uncaught runtime rejections
+          // which were bubbling as "Request contains an invalid argument." in the UI.
+          try { console.warn('insertPlaylistItem non-retriable error for', youtubeId, '=>', friendly) } catch (er) {}
+          return resolve({ error: friendly, status: status, data: data })
+        })
+      }
+      tryPost()
+    })
   }
-  
-  function insertPlaylistItem(position, playlistId, item, accessToken, note = '') {
-      var youtubeId = item.id
-      return new Promise(function(resolve,reject) {
-          //console.log('insertPlaylistItem',playlistId, youtubeId, note)
-          //var useToken = accessToken ? accessToken : access_token
-          if (accessToken) {
-            var url = 'https://youtube.googleapis.com/youtube/v3/playlistItems?part=snippet&key=' + process.env.REACT_APP_GOOGLE_API_KEY
-            axios({
-              method: 'post',
-              url: url,
-              headers: {'Authorization': 'Bearer '+accessToken, 'Accept': 'application/json', 'Content-Type': 'application/json'},
-              data: {
-                  "snippet": {
-                    "playlistId": playlistId,
-                    "position": String(position),
-                    "resourceId": {
-                      "kind": "youtube#video",
-                      "videoId": youtubeId
-                    }
-                    //,
-                    //"contentDetails": {
-                        //"videoId": youtubeId,
-                        //"startAt": String(item.start),
-                        //"endAt": String(item.end),
-                        //"note": item.note
-                    //}
-                  }
-                }
-            }).then(function(postRes) {
-                //console.log(postRes)
-                if (postRes && postRes.data  && postRes.data.id) {
-                    resolve(postRes.data.id)
-                } else {
-                    reject()
-                }
-            }).catch(function(e) {
-              resolve(null)
-            })
+
+  // Insert or update items for a playlist: insert missing items and remove any that are no longer present
+  function insertOrUpdatePlaylistItems(playlistId, items, accessToken) {
+    return new Promise(function(resolve, reject) {
+      if (!Array.isArray(items)) return resolve([])
+      getPlaylistItems(playlistId, accessToken).then(function(currentItems) {
+        var lookups = {}
+        var cleanups = {}
+        if (Array.isArray(currentItems)) {
+          currentItems.forEach(function(ci) {
+            if (ci && ci.id && ci.youtubeId) {
+              lookups[ci.youtubeId] = ci
+              cleanups[ci.id] = ci.youtubeId
+            }
+          })
+        }
+  var insertPromises = []
+  var position = 0
+  // limit exported items to MAX_EXPORT_ITEMS
+  var limitedItems = Array.isArray(items) ? items.slice(0, MAX_EXPORT_ITEMS) : []
+  limitedItems.forEach(function(item) {
+          var yid = (typeof item === 'string') ? item : (item && (item.id || item.youtubeId) ? (item.id || item.youtubeId) : null)
+          if (yid && lookups.hasOwnProperty(yid)) {
+            var existing = lookups[yid]
+            if (existing && existing.id) cleanups[existing.id] = null
           } else {
-            //if (!accessToken && localStorage.getItem('abc2book_lastuser')) refresh() 
-            resolve(null)
+            insertPromises.push(insertPlaylistItem(position, playlistId, item, accessToken))
+            position++
           }
+        })
+        // Insert sequentially with a small delay to avoid rate limits; record per-item results and continue on error
+        var insertResults = []
+        var insertList = []
+        Object.keys(insertPromises).forEach(function(k) { /* no-op, legacy */ })
+        // Build explicit list of items to insert with positions
+        var pos = 0
+        limitedItems.forEach(function(item) {
+          var yid = (typeof item === 'string') ? item : (item && (item.id || item.youtubeId) ? (item.id || item.youtubeId) : null)
+          if (!(yid && lookups.hasOwnProperty(yid))) {
+            insertList.push({item: item, position: pos})
+            pos++
+          }
+        })
+
+        var delayMs = 300
+        var idx = 0
+        function runNextInsert() {
+          if (idx >= insertList.length) {
+            // now run deletes
+            var deletePromises = []
+            Object.keys(cleanups).forEach(function(pid) {
+              if (cleanups[pid]) {
+                deletePromises.push(deletePlaylistItem(pid, accessToken))
+              }
+            })
+            Promise.all(deletePromises).then(function(deleteResults) {
+              resolve((insertResults || []).concat(deleteResults || []))
+            }).catch(function() {
+              resolve(insertResults || [])
+            })
+            return
+          }
+          var it = insertList[idx]
+          insertPlaylistItem(it.position, playlistId, it.item, accessToken).then(function(res) {
+            insertResults.push(res)
+            idx++
+            setTimeout(runNextInsert, delayMs)
+          }).catch(function(err) {
+            // record failure but continue
+            try { console.error('insertOrUpdatePlaylistItems insert error', _extractAjaxError(err)) } catch (er) {}
+            insertResults.push({error: _extractAjaxError(err)})
+            idx++
+            setTimeout(runNextInsert, delayMs)
+          })
+        }
+        runNextInsert()
+      }).catch(function(e) {
+        reject(e)
       })
+    })
   }
   
    
@@ -240,9 +369,9 @@ export default function useYouTubePlaylist() {
           url: url,
           headers: {'Authorization': 'Bearer '+accessToken, 'Accept': 'application/json', 'Content-Type': 'application/json'},
         }).then(function(postRes) {
-            resolve([])
+            resolve(postRes && postRes.data ? postRes.data : {})
         }).catch(function(e) {
-          reject([])
+          reject(e)
         })
       } else {
         //if (!accessToken && localStorage.getItem('abc2book_lastuser')) refresh() 
@@ -258,34 +387,129 @@ export default function useYouTubePlaylist() {
         if (Array.isArray(items)) {
             var count = 0
             items.forEach(function(item) {
-                promises.push(insertPlaylistItem(count, playlistId, item, accessToken))
+                var yid = (typeof item === 'string') ? item : (item.id || item.youtubeId || null)
+                promises.push(insertPlaylistItem(count, playlistId, yid ? yid : item, accessToken))
                 count++
             })
         }
-        Promise.all(promises).then(function() {
-          resolve()  
+        // Use allSettled so single failures don't reject the whole batch
+        Promise.allSettled(promises).then(function(results) {
+          var normalized = results.map(function(r) {
+            if (r.status === 'fulfilled') return r.value
+            return {error: (r.reason && r.reason.message) ? r.reason.message : String(r.reason)}
+          })
+          resolve(normalized)
+        }).catch(function(e) {
+          // fallback
+          reject(e)
         })
       })
   }
     
   function insertOrUpdatePlaylist(title, items, accessToken) {
-      //console.log('insertOrUpdatePlaylist',title, items)
-      getMyPlaylists(accessToken).then(function(playlists) {
-          //console.log('got pl',playlists)
-          var found = null
-          playlists.forEach(function(playlist) {
-            if (playlist.title && playlist.title.trim() && title.trim() && playlist.title.trim() === title.trim()) {
-                found = playlist
+  return new Promise(function(resolve) {
+          try {
+            // short-lived toast to indicate export has started (will be followed by the countdown)
+            try { toast.info('Export starting...', {autoClose: 3000}) } catch (er) {}
+            // start export countdown estimating based on number of items
+            try { _startExportCountdown(Array.isArray(items) ? Math.min(items.length, MAX_EXPORT_ITEMS) : 0) } catch (er) {}
+            var p = null
+            try {
+              p = getMyPlaylists(accessToken)
+            } catch (syncErr) {
+              console.error('getMyPlaylists threw synchronously', syncErr)
+              resolve({action:'list_failed', error: _extractAjaxError(syncErr)})
+              return
             }
-          })
-          if (found) {
-              insertOrUpdatePlaylistItems(found.id, items, accessToken)  
-          } else {
-              insertPlaylist(title, accessToken).then(function(playlistId) {
-                 insertPlaylistItems(playlistId, items, accessToken)  
-              })
+            if (!p || typeof p.then !== 'function') {
+              resolve({action:'list_failed', error: 'getMyPlaylists did not return a promise'})
+              return
+            }
+            p.then(function(playlists) {
+              var found = null
+              try {
+                if (Array.isArray(playlists)) {
+                  for (var pi = 0; pi < playlists.length; pi++) {
+                    var playlist = playlists[pi]
+                    var ptitle = playlist && playlist.title
+                    if (ptitle && typeof ptitle.trim === 'function' && title && typeof title.trim === 'function') {
+                      if (ptitle.trim() === title.trim()) {
+                        found = playlist
+                        break
+                      }
+                    }
+                  }
+                }
+              } catch (iterErr) {
+                console.error('Error iterating playlists', iterErr)
+              }
+              // found playlist or null
+                  if (found) {
+                  // update existing
+                  insertOrUpdatePlaylistItems(found.id, items, accessToken).then(function(results) {
+                      // read results to determine success/failure
+                      var created = 0, deleted = 0, failed = 0
+                      if (Array.isArray(results)) {
+                        results.forEach(function(r) {
+                          if (r === null) { /* insert returned null */ }
+                          else if (typeof r === 'string') created++
+                        })
+                      }
+                      _stopExportCountdown('YouTube playlist updated: ' + title, true)
+                      resolve({action:'updated', playlistId: found.id, created, deleted, failed})
+                  }).catch(function(e) {
+                      var msg = _extractAjaxError(e)
+                      _stopExportCountdown('Failed to update playlist: ' + msg, false)
+                      resolve({action:'update_failed', error: msg})
+                  })
+              } else {
+                  // create new playlist then add items
+                  insertPlaylist(title, accessToken).then(function(playlistId) {
+                     if (!playlistId) {
+                        try { _stopExportCountdown('Failed to create YouTube playlist', false) } catch (er) {}
+                        resolve({action:'create_failed'})
+                        return
+                     }
+                     // Use the sequential inserter (with delay and retries) so newly created playlists
+                     // receive items one-by-one. The previous concurrent batch was dropping items
+                     // under rate limiting; insertOrUpdatePlaylistItems handles retries, 409s, and delays.
+                     insertOrUpdatePlaylistItems(playlistId, items, accessToken).then(function(results) {
+                        var created = 0, failed = 0
+                        if (Array.isArray(results)) {
+                          results.forEach(function(r) {
+                            if (r === null) failed++
+                            else if (typeof r === 'string') created++
+                          })
+                        }
+            _stopExportCountdown('YouTube playlist created: ' + title + ' (' + created + ' items added)', true)
+            resolve({action:'created', playlistId: playlistId, created, failed})
+                     }).catch(function(e) {
+                        var msg = _extractAjaxError(e)
+            _stopExportCountdown('Playlist created but adding items failed: ' + msg, false)
+            resolve({action:'items_failed', playlistId: playlistId, error: msg})
+                     })
+                  }).catch(function(e) {
+                    var msg = _extractAjaxError(e)
+                    _stopExportCountdown('Failed to create playlist: ' + msg, false)
+          resolve({action:'create_failed', error: msg})
+                  })
+              }
+              
+            }).catch(function(e) {
+              console.error('insertOrUpdatePlaylist getMyPlaylists error', e)
+              if (e && e.stack) console.error('stack', e.stack)
+              var msg = _extractAjaxError(e)
+              toast.error('Failed to fetch your playlists: ' + msg)
+              try { _stopExportCountdown('Failed to fetch your playlists: ' + msg, false) } catch (er) {}
+              resolve({action:'list_failed', error: msg})
+            })
+          } catch (ex) {
+            console.error('insertOrUpdatePlaylist unexpected error', ex)
+            var msg = _extractAjaxError(ex)
+            toast.error('Unexpected error: ' + msg)
+            try { _stopExportCountdown('Unexpected error: ' + msg, false) } catch (er) {}
+            resolve({action:'error', error: msg})
           }
-          
       })
   }
   
