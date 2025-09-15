@@ -87,10 +87,10 @@ export default function Header(props) {
                  {(!isMobile && props.mediaPlaylist === null && props.currentTune && props.tunes && props.tunes[props.currentTune]) ? <Link to={"/tunes/"+props.currentTune} ><Button size="lg" variant="info" style={{marginLeft:'0.1em', color: 'black',  border: (location.pathname.startsWith('/tunes/') ? '1px solid black' : '')}} onClick={function(e) {props.tunebook.utils.scrollTo('topofpage',10)}} >{props.tunebook.icons.musicheader}</Button></Link> : null}
                 
                 {!isMobile && <>
-                                            <Dropdown style={{display:'inline', marginLeft:'0.1em', zIndex:15}}>
+                                            <Dropdown autoClose={true} style={{marginLeft:'0.1em'}}>
                           <Dropdown.Toggle variant="info" id="dropdown-header" style={{height:'3.4em', width:'3em'}}>
                           </Dropdown.Toggle>
-                                                <Dropdown.Menu style={{display:'inline', marginLeft:'0.1em', zIndex:15}}>
+                                                <Dropdown.Menu style={{marginLeft:'0.1em', zIndex:1000}}>
                             <Dropdown.Item ><Link to="/settings" ><Button  size="lg" variant="warning"  >{props.tunebook.icons.settings} Settings</Button></Link> </Dropdown.Item>
                             
                             <Dropdown.Item ><Link  to='/help' onClick={function() {setTimeout(function() {props.tunebook.utils.scrollTo('topofpage')},300)}} ><Button size="lg" variant="info" >{props.tunebook.icons.question} Help &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</Button></Link> </Dropdown.Item>
